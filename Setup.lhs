@@ -1,6 +1,7 @@
 #!/usr/bin/env runhaskell
 
 \begin{code}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 import Distribution.Simple
 import Distribution.PackageDescription
 import Distribution.Version
@@ -26,8 +27,19 @@ main = defaultMainWithHooks simpleUserHooks {
     }
 }
 
+-- add support for cabal 1.18
+-- see also https://github.com/hdbc/hdbc-postgresql/pull/32
+class ConstOrId a b where
+    constOrId :: a -> b
+
+instance ConstOrId a a where
+    constOrId = id
+
+instance ConstOrId a (b -> a) where
+    constOrId = const
+
 mysqlConfigProgram = (simpleProgram "mysql_config") {
-    programFindLocation = \verbosity -> do
+    programFindLocation = \verbosity -> constOrId $ do
       mysql_config  <- findProgramOnPath "mysql_config"  verbosity
       mysql_config5 <- findProgramOnPath "mysql_config5" verbosity
       return (mysql_config `mplus` mysql_config5)
